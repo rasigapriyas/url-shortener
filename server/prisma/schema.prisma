@@ -7,13 +7,13 @@
 //generator prisma client
 generator client { 
 //use prisma click generator
-  provider = "prisma-client"
-//generated prisma code goes here
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
+
 }
 // db type = postgresql
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 enum OtpPurpose {
   REGISTER
@@ -62,6 +62,7 @@ model UserOtp {
 
   user       User       @relation(fields: [userId], references: [id])
 }
+
 model Url {
   id          Int       @id @default(autoincrement())
   userId      Int
