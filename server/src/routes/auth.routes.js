@@ -45,8 +45,10 @@ const {
 router.post(
   "/register",
   registerLimiter,
+  verifyRecaptcha,
   register
 );
+
 // verify otp route
 router.post(
   "/verify-otp",
@@ -57,8 +59,11 @@ router.post(
 router.post(
   "/login",
   loginLimiter,
+  verifyRecaptcha,
   login
 );
+
+// resend otp route
 router.post(
   "/resend-otp",
   resendOtp
@@ -84,6 +89,7 @@ router.post(
   "/forgot-password",
   sendResetOtp
 );
+
 // verify reset otp route
 router.post(
   "/verify-reset-otp",

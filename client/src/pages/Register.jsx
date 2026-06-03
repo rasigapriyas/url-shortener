@@ -4,6 +4,9 @@ import { useState }
 import { useNavigate }
   from "react-router-dom";
 
+import ReCAPTCHA
+  from "react-google-recaptcha";
+
 import api from
   "../services/api";
 
@@ -33,6 +36,11 @@ function Register() {
     setPassword] =
     useState("");
 
+  const [
+    recaptchaToken,
+    setRecaptchaToken,
+  ] = useState("");
+
   const handleRegister =
     async () => {
 
@@ -47,16 +55,19 @@ function Register() {
               name,
               email,
               password,
+              recaptchaToken,
             }
 
           );
 
         alert(
-  `${response.data.message}
+
+`${response.data.message}
 
 OTP:
 ${response.data.otp}`
-);
+
+        );
 
         localStorage.setItem(
 
@@ -74,8 +85,13 @@ ${response.data.otp}`
 
       catch (error) {
 
-        console.log(
+        alert(
+
           error.response?.data
+            ?.message ||
+
+          "Registration Failed"
+
         );
 
       }
@@ -147,6 +163,24 @@ ${response.data.otp}`
           setPassword(
             e.target.value
           )
+        }
+
+      />
+
+      <br />
+      <br />
+
+      <ReCAPTCHA
+
+        sitekey=
+          "6LcjAwotAAAAAHFK2MLadY-qqzgY0JhRDVOs3g0h"
+
+        onChange={(token) =>
+
+          setRecaptchaToken(
+            token
+          )
+
         }
 
       />

@@ -175,6 +175,8 @@ import AuthLayout from
 // api service
 import api from
   "../services/api";
+  import ReCAPTCHA
+  from "react-google-recaptcha";
 
 // login page
 function Login() {
@@ -191,6 +193,10 @@ function Login() {
   const [password,
     setPassword] =
     useState("");
+    const [
+  recaptchaToken,
+  setRecaptchaToken,
+] = useState("");
 
   // login handler
   const handleLogin =
@@ -200,15 +206,13 @@ function Login() {
 
         const response =
           await api.post(
-
-            "/auth/login",
-
-            {
-              email,
-              password,
-            }
-
-          );
+  "/auth/login",
+  {
+    email,
+    password,
+    recaptchaToken,
+  }
+);
 
         const token =
           response.data.token;
@@ -288,6 +292,23 @@ function Login() {
 
       <br />
       <br />
+      <ReCAPTCHA
+
+  sitekey=
+    "6LcjAwotAAAAAHFK2MLadY-qqzgY0JhRDVOs3g0h"
+
+  onChange={(token) =>
+
+    setRecaptchaToken(
+      token
+    )
+
+  }
+
+/>
+
+<br />
+<br />
 
       <Button
 
