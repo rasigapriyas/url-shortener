@@ -11,11 +11,16 @@ import Login from
 
 import Register from
   "../pages/Register";
+  import VerifyOtp from
+  "../pages/VerifyOtp";
 
 import Dashboard from
   "../pages/Dashboard";
   import ProtectedRoute from
   "../components/ProtectedRoute";
+  import Analytics from
+  "../pages/Analytics";
+  
 
 // route configuration
 function AppRoutes() {
@@ -35,6 +40,10 @@ function AppRoutes() {
           path="/register"
           element={<Register />}
         />
+        <Route
+  path="/verify-otp"
+  element={<VerifyOtp />}
+/>
 
         <Route
   path="/dashboard"
@@ -47,6 +56,22 @@ function AppRoutes() {
     </ProtectedRoute>
 
   }
+/>
+<Route
+
+  path=
+    "/analytics/:shortCode"
+
+  element={
+
+    <ProtectedRoute>
+
+      <Analytics />
+
+    </ProtectedRoute>
+
+  }
+
 />
       </Routes>
 
