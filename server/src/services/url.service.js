@@ -18,6 +18,20 @@ const createShortUrl = async (
 
   // get original url
   const { originalUrl } = urlData;
+  // validate url
+const urlPattern =
+  /^(https?:\/\/)[^\s$.?#].[^\s]*$/i;
+
+if (
+  !urlPattern.test(
+    originalUrl
+  )
+) {
+  return {
+    message:
+      "Please enter a valid URL",
+  };
+}
 
   // generate shortcode
   const shortCode =
