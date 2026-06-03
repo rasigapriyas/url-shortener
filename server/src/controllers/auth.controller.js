@@ -3,8 +3,10 @@ const {
   registerUser,
   verifyOtp,
   loginUser,
-} = require("../services/auth.service");
-
+  resendUserOtp,
+} = require(
+  "../services/auth.service"
+);
 // handle register request
 const register = async (req, res) => {
 
@@ -31,10 +33,25 @@ const login = async (req, res) => {
   res.json(result);
 
 };
+const resendOtp =
+  async (req, res) => {
+
+    const { email } =
+      req.body;
+
+    const result =
+      await resendUserOtp(
+        email
+      );
+
+    res.json(result);
+
+  };
 
 // export controller functions
 module.exports = {
   register,
   verifyUserOtp,
   login,
+  resendOtp,
 };

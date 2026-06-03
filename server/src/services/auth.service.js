@@ -442,6 +442,54 @@ const resetPassword =
     };
 
   };
+  const resendUserOtp =
+  async (email) => {
+
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+
+    if (!user) {
+
+      return {
+        message:
+          "User not found",
+      };
+
+    }
+
+    const otp =
+      Math.floor(
+        100000 +
+        Math.random() * 900000
+      ).toString();
+
+    const expiresAt =
+      new Date(
+        Date.now() +
+        10 * 60 * 1000
+      );
+
+    await prisma.userOtp.create({
+      data: {
+        userId: user.id,
+        otp,
+        purpose:
+          "REGISTER",
+        expiresAt,
+      },
+    });
+
+    return {
+      message:
+        "OTP resent successfully",
+      otp,
+    };
+
+  };
 // export service function
 module.exports = {
   registerUser,
@@ -450,4 +498,5 @@ module.exports = {
   forgotPassword,
   verifyResetOtp,
   resetPassword,
+  resendUserOtp,
 };

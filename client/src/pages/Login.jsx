@@ -321,6 +321,14 @@ function Login() {
         }
 
       />
+      <Button
+  text="Forgot Password"
+  onClick={() =>
+    navigate(
+      "/forgot-password"
+    )
+  }
+/>
 
     </AuthLayout>
 

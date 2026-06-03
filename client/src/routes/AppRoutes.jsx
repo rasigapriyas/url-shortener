@@ -20,6 +20,11 @@ import Dashboard from
   "../components/ProtectedRoute";
   import Analytics from
   "../pages/Analytics";
+  import ForgotPassword
+  from "../pages/ForgotPassword";
+
+import ResetPassword
+  from "../pages/ResetPassword";
   
 
 // route configuration
@@ -43,6 +48,19 @@ function AppRoutes() {
         <Route
   path="/verify-otp"
   element={<VerifyOtp />}
+/>
+<Route
+  path="/forgot-password"
+  element={
+    <ForgotPassword />
+  }
+/>
+
+<Route
+  path="/reset-password"
+  element={
+    <ResetPassword />
+  }
 />
 
         <Route

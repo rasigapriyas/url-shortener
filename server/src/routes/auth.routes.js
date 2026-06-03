@@ -27,6 +27,7 @@ const {
   register,
   verifyUserOtp,
   login,
+  resendOtp,
 } = require(
   "../controllers/auth.controller"
 );
@@ -57,6 +58,10 @@ router.post(
   "/login",
   loginLimiter,
   login
+);
+router.post(
+  "/resend-otp",
+  resendOtp
 );
 
 // profile route

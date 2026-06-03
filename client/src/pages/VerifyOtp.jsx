@@ -47,10 +47,6 @@ function VerifyOtp() {
 
           );
 
-        alert(
-          response.data.message
-        );
-
         if (
 
           response.data.message ===
@@ -58,7 +54,23 @@ function VerifyOtp() {
 
         ) {
 
+          alert(
+            response.data.message
+          );
+
+          localStorage.removeItem(
+            "verifyEmail"
+          );
+
           navigate("/");
+
+        }
+
+        else {
+
+          alert(
+            response.data.message
+          );
 
         }
 
@@ -67,9 +79,49 @@ function VerifyOtp() {
       catch (error) {
 
         alert(
+
           error.response?.data
             ?.message ||
+
           "Verification Failed"
+
+        );
+
+      }
+
+    };
+
+  const handleResend =
+    async () => {
+
+      try {
+
+        const response =
+          await api.post(
+
+            "/auth/resend-otp",
+
+            {
+              email,
+            }
+
+          );
+
+        alert(
+
+          `${response.data.message}
+
+OTP:
+${response.data.otp}`
+
+        );
+
+      }
+
+      catch (error) {
+
+        alert(
+          "Unable to resend OTP"
         );
 
       }
@@ -118,6 +170,19 @@ function VerifyOtp() {
 
         onClick={
           handleVerify
+        }
+
+      />
+
+      <br />
+      <br />
+
+      <Button
+
+        text="Resend OTP"
+
+        onClick={
+          handleResend
         }
 
       />
