@@ -28,6 +28,8 @@ const {
   verifyUserOtp,
   login,
   resendOtp,
+  refreshToken,
+  logout,
 } = require(
   "../controllers/auth.controller"
 );
@@ -87,6 +89,7 @@ router.get(
 // forgot password route
 router.post(
   "/forgot-password",
+  verifyRecaptcha,
   sendResetOtp
 );
 
@@ -100,6 +103,19 @@ router.post(
 router.post(
   "/reset-password",
   changePassword
+);
+
+// refresh access token
+router.post(
+  "/refresh",
+  refreshToken
+);
+
+// logout route
+router.post(
+  "/logout",
+  authenticate,
+  logout
 );
 
 // export router

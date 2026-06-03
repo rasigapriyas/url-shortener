@@ -25,6 +25,8 @@ import Dashboard from
 
 import ResetPassword
   from "../pages/ResetPassword";
+import PublicStats
+  from "../pages/PublicStats";
   
 
 // route configuration
@@ -60,6 +62,13 @@ function AppRoutes() {
   path="/reset-password"
   element={
     <ResetPassword />
+  }
+/>
+
+<Route
+  path="/stats/:shortCode"
+  element={
+    <PublicStats />
   }
 />
 

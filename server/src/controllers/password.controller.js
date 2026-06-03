@@ -4,6 +4,7 @@ const {
   verifyResetOtp,
   resetPassword,
 } = require("../services/auth.service");
+const { send } = require("../utils/http");
 // forgot password controller
 const sendResetOtp =
   async (req, res) => {
@@ -18,7 +19,7 @@ const sendResetOtp =
       );
 
     // send response
-    res.json(result);
+    send(res, result);
 
   };
 
@@ -40,7 +41,7 @@ const verifyForgotOtp =
       );
 
     // send response
-    res.json(result);
+    send(res, result);
 
   };
   // reset password controller
@@ -51,17 +52,19 @@ const changePassword =
     const {
       email,
       newPassword,
+      resetTicket,
     } = req.body;
 
     // reset password
     const result =
       await resetPassword(
         email,
-        newPassword
+        newPassword,
+        resetTicket
       );
 
     // send response
-    res.json(result);
+    send(res, result);
 
   };
 

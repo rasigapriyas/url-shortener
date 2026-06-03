@@ -1,5 +1,6 @@
 import { useNavigate }
   from "react-router-dom";
+import api from "../services/api";
 
 function LogoutButton() {
 
@@ -7,10 +8,23 @@ function LogoutButton() {
     useNavigate();
 
   const handleLogout =
-    () => {
+    async () => {
+      try {
+        await api.post("/auth/logout", {
+          refreshToken:
+            localStorage.getItem(
+              "refreshToken"
+            ),
+        });
+      } catch (error) {
+        console.log(error.response?.data);
+      }
 
       localStorage.removeItem(
         "token"
+      );
+      localStorage.removeItem(
+        "refreshToken"
       );
 
       navigate("/");
@@ -23,6 +37,7 @@ function LogoutButton() {
       onClick={
         handleLogout
       }
+      className="btn btn-secondary"
     >
 
       Logout

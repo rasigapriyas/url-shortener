@@ -19,8 +19,14 @@ const redirect = async (
     ipAddress: req.ip,
 
     // browser info
-    browser:
+    userAgent:
       req.headers["user-agent"],
+
+    referrer:
+      req.headers.referer,
+
+    country:
+      req.headers["cf-ipcountry"],
 
   };
 
@@ -35,6 +41,12 @@ const redirect = async (
   if (!originalUrl) {
     return res.status(404).json({
       message: "URL not found",
+    });
+  }
+
+  if (originalUrl === "EXPIRED") {
+    return res.status(410).json({
+      message: "URL expired or inactive",
     });
   }
 

@@ -9,7 +9,7 @@ const authenticate = (req, res, next) => {
     req.headers.authorization;
 
   // token missing
-  if (!authHeader) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({
       message: "Token required",
     });

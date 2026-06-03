@@ -3,28 +3,20 @@ function Button({
   type = "button",
   onClick,
   disabled = false,
+  variant = "primary",
+  block = false,
+  children,
 }) {
-
   return (
-
     <button
-
       type={type}
-
       onClick={onClick}
-
       disabled={disabled}
-
-      className="btn"
-
+      className={`btn btn-${variant}${block ? " btn-block" : ""}`}
     >
-
-      {text}
-
+      {children || text}
     </button>
-
   );
-
 }
 
 export default Button;

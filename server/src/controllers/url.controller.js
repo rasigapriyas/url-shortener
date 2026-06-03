@@ -2,7 +2,10 @@
 const {
   createShortUrl,
   deleteUrl,
+  updateUrl,
+  bulkCreateShortUrls,
 } = require("../services/url.service");
+const { send } = require("../utils/http");
 
 // create short url controller
 const createUrl = async (req, res) => {
@@ -18,7 +21,7 @@ const createUrl = async (req, res) => {
     );
 
   // send response
-  res.json(result);
+  send(res, result);
 
 };
 
@@ -43,12 +46,33 @@ const removeUrl = async (
     );
 
   // send response
-  res.json(result);
+  send(res, result);
 
+};
+
+const editUrl = async (req, res) => {
+  const result = await updateUrl(
+    req.user.userId,
+    req.params.id,
+    req.body
+  );
+
+  send(res, result);
+};
+
+const bulkCreateUrls = async (req, res) => {
+  const result = await bulkCreateShortUrls(
+    req.user.userId,
+    req.body.urls
+  );
+
+  send(res, result);
 };
 
 // export controller
 module.exports = {
   createUrl,
   removeUrl,
+  editUrl,
+  bulkCreateUrls,
 };

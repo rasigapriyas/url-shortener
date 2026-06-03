@@ -23,12 +23,25 @@ enum OtpPurpose {
 enum UserStatus {
   ACTIVE
   INACTIVE
+  SUSPENDED
 }
 
 enum UrlStatus {
   ACTIVE
   INACTIVE
   EXPIRED
+  DELETED
+}
+
+enum AuditAction {
+  REGISTER
+  LOGIN
+  LOGOUT
+  CREATE_URL
+  UPDATE_URL
+  DELETE_URL
+  REDIRECT
+  PASSWORD_RESET
 }
 
 model User {
@@ -45,22 +58,30 @@ model User {
 
   otps                  UserOtp[]
   urls                  Url[]
+  refreshTokens         RefreshToken[]
+  auditLogs             AuditLog[]
 
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
+  deletedAt             DateTime?
 }
 
 model UserOtp {
-  id         Int        @id @default(autoincrement())
-  userId     Int
-  otp        String
-  purpose    OtpPurpose
-  expiresAt  DateTime
-  verified   Boolean    @default(false)
+  id           Int        @id @default(autoincrement())
+  userId       Int
+  otp          String
+  purpose      OtpPurpose
+  expiresAt    DateTime
+  attemptCount Int        @default(0)
+  isUsed       Boolean    @default(false)
+  // kept for backwards compatibility with existing rows; mirrors isUsed
+  verified     Boolean    @default(false)
 
-  createdAt  DateTime   @default(now())
+  createdAt    DateTime   @default(now())
 
-  user       User       @relation(fields: [userId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@index([userId, purpose, isUsed])
 }
 
 model Url {
@@ -69,11 +90,14 @@ model Url {
 
   originalUrl String
   shortCode   String    @unique
+  customAlias String?   @unique
 
   totalClicks Int       @default(0)
+  lastVisitedAt DateTime?
 
   status      UrlStatus @default(ACTIVE)
   expiresAt   DateTime?
+  deletedAt   DateTime?
 
   visits      Visit[]
 
@@ -81,6 +105,9 @@ model Url {
   updatedAt   DateTime  @updatedAt
 
   user        User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@index([shortCode])
 }
 model Visit {
   id         Int      @id @default(autoincrement())
@@ -90,9 +117,40 @@ model Visit {
   ipAddress  String?
   browser    String?
   device     String?
+  os         String?
   country    String?
+  referrer   String?
+  userAgent  String?
 
   visitedAt  DateTime @default(now())
 
   url        Url      @relation(fields: [urlId], references: [id])
+
+  @@index([urlId, visitedAt])
+}
+
+model RefreshToken {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id         Int         @id @default(autoincrement())
+  userId     Int?
+  action     AuditAction
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime    @default(now())
+
+  user       User?       @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
 }

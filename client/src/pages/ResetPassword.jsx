@@ -1,144 +1,70 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
-import Input from "../components/Input";
+import toast from "../services/toast";
 import Button from "../components/Button";
 import AuthLayout from "../layouts/AuthLayout";
 
+const STRONG = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
 function ResetPassword() {
+  const navigate = useNavigate();
+  const email = localStorage.getItem("resetEmail");
 
-  const navigate =
-    useNavigate();
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const email =
-    localStorage.getItem(
-      "resetEmail"
-    );
+  const handleReset = async () => {
+    if (!STRONG.test(newPassword)) {
+      toast.error("Password needs upper, lower, number, symbol, and 8+ chars");
+      return;
+    }
+    try {
+      setLoading(true);
+      // Step 1: verify the OTP, receive a short-lived reset ticket.
+      const verify = await api.post("/auth/verify-reset-otp", { email, otp });
+      const resetTicket = verify.data.resetTicket;
 
-  const [otp, setOtp] =
-    useState("");
+      // Step 2: set the new password using that ticket.
+      const res = await api.post("/auth/reset-password", {
+        email,
+        newPassword,
+        resetTicket,
+      });
 
-  const [newPassword,
-    setNewPassword] =
-    useState("");
-
-  const handleReset =
-    async () => {
-
-      try {
-
-        const verifyResponse =
-          await api.post(
-
-            "/auth/verify-reset-otp",
-
-            {
-              email,
-              otp,
-            }
-
-          );
-
-        if (
-          verifyResponse
-            .data.message !==
-          "OTP verified successfully"
-        ) {
-
-          alert(
-            verifyResponse
-              .data.message
-          );
-
-          return;
-
-        }
-
-        const response =
-          await api.post(
-
-            "/auth/reset-password",
-
-            {
-              email,
-              newPassword,
-            }
-
-          );
-
-        alert(
-          response.data.message
-        );
-
-        localStorage.removeItem(
-          "resetEmail"
-        );
-
-        navigate("/");
-
-      } catch (error) {
-
-        alert(
-          error.response?.data
-            ?.message ||
-          "Reset failed"
-        );
-
-      }
-
-    };
+      toast.success(res.data.message || "Password updated");
+      localStorage.removeItem("resetEmail");
+      navigate("/");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Reset failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-
     <AuthLayout
-      title="Reset Password"
+      title="Set a new password"
+      subtitle={`Enter the code sent to ${email || "your email"} and choose a new password.`}
+      footer={<><Link to="/forgot-password">Resend code</Link></>}
     >
+      <div className="field">
+        <label>Verification code</label>
+        <input className="input" inputMode="numeric" maxLength={6} placeholder="6-digit code"
+          value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} />
+      </div>
+      <div className="field">
+        <label>New password</label>
+        <input className="input" type="password" placeholder="••••••••"
+          value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+        <span className="field-hint">8+ chars with uppercase, lowercase, number, and symbol.</span>
+      </div>
 
-      <p>
-        Email:
-        {" "}
-        {email}
-      </p>
-
-      <Input
-        type="text"
-        placeholder="Enter OTP"
-        value={otp}
-        onChange={(e) =>
-          setOtp(
-            e.target.value
-          )
-        }
-      />
-
-      <br />
-      <br />
-
-      <Input
-        type="password"
-        placeholder="New Password"
-        value={newPassword}
-        onChange={(e) =>
-          setNewPassword(
-            e.target.value
-          )
-        }
-      />
-
-      <br />
-      <br />
-
-      <Button
-        text="Reset Password"
-        onClick={
-          handleReset
-        }
-      />
-
+      <Button text={loading ? "Updating…" : "Reset password"} onClick={handleReset}
+        disabled={loading} variant="primary" block />
     </AuthLayout>
-
   );
-
 }
 
 export default ResetPassword;

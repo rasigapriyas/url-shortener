@@ -1,71 +1,78 @@
-// bring express package into file
+// load environment variables
+require("dotenv").config();
+
 const express = require("express");
-
-// cors package
 const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
 
-// import auth routes
-const authRoutes =
-  require("./routes/auth.routes");
+const authRoutes = require("./routes/auth.routes");
+const urlRoutes = require("./routes/url.routes");
+const { redirect } = require("./controllers/redirect.controller");
 
-// import url routes
-const urlRoutes =
-  require("./routes/url.routes");
-
-// import redirect controller
-const {
-  redirect,
-} = require(
-  "./controllers/redirect.controller"
-);
-
-// express creates server
 const app = express();
 
-// enable cors
+// behind a proxy (Render/Railway/Nginx) so rate-limit + IP capture work
+app.set("trust proxy", 1);
+
+// security headers
+app.use(helmet());
+
+// request logging
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+
+// CORS — allow the configured client origin(s)
+const allowedOrigins = (
+  process.env.CLIENT_ORIGINS ||
+  "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://127.0.0.1:5173"
+)
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin:
-      "http://localhost:5175",
+    origin(origin, callback) {
+      // allow non-browser tools (no origin) and whitelisted origins
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
   })
 );
 
-// parse incoming JSON requests
-app.use(
-  express.json()
-);
+// parse JSON bodies
+app.use(express.json({ limit: "1mb" }));
 
-// mount auth routes
-app.use(
-  "/api/auth",
-  authRoutes
-);
+// API routes
+app.use("/api/auth", authRoutes);
+app.use("/api/url", urlRoutes);
 
-// mount url routes
-app.use(
-  "/api/url",
-  urlRoutes
-);
+// health check
+app.get("/", (req, res) => res.send("URL Shortener API Running"));
 
-// health check route
-app.get("/", (req, res) => {
-  res.send(
-    "URL Shortener API Running"
-  );
+// public redirect by short code
+app.get("/:shortCode", redirect);
+
+// 404 for anything unmatched
+app.use((req, res) => {
+  res.status(404).json({ message: "Resource not found" });
 });
 
-// public redirect route
-app.get(
-  "/:shortCode",
-  redirect
-);
+// centralized error handler — last middleware
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  const status = err.status || 500;
+  if (status >= 500) console.error(err);
+  res.status(status).json({
+    message:
+      status >= 500 ? "Something went wrong. Please try again." : err.message,
+  });
+});
 
-// server port
-const PORT = 5000;
-
-// start server
+const PORT = Number(process.env.PORT) || 5000;
 app.listen(PORT, () => {
-  console.log(
-    `Server running on port ${PORT}`
-  );
+  console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = app;

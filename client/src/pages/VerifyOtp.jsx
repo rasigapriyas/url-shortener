@@ -1,196 +1,79 @@
-import { useState }
-  from "react";
-
-import { useNavigate }
-  from "react-router-dom";
-
-import api from
-  "../services/api";
-
-import Input from
-  "../components/Input";
-
-import Button from
-  "../components/Button";
-
-import AuthLayout from
-  "../layouts/AuthLayout";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../services/api";
+import toast from "../services/toast";
+import Button from "../components/Button";
+import AuthLayout from "../layouts/AuthLayout";
 
 function VerifyOtp() {
+  const navigate = useNavigate();
+  const email = localStorage.getItem("verifyEmail");
+  const [otp, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(60);
 
-  const navigate =
-    useNavigate();
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
-  const [otp,
-    setOtp] =
-    useState("");
+  const handleVerify = async () => {
+    try {
+      setLoading(true);
+      const res = await api.post("/auth/verify-otp", { email, otp });
+      toast.success(res.data.message || "Verified");
+      localStorage.removeItem("verifyEmail");
+      navigate("/");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Verification failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const email =
-    localStorage.getItem(
-      "verifyEmail"
-    );
-
-  const handleVerify =
-    async () => {
-
-      try {
-
-        const response =
-          await api.post(
-
-            "/auth/verify-otp",
-
-            {
-              email,
-              otp,
-            }
-
-          );
-
-        if (
-
-          response.data.message ===
-          "OTP verified successfully"
-
-        ) {
-
-          alert(
-            response.data.message
-          );
-
-          localStorage.removeItem(
-            "verifyEmail"
-          );
-
-          navigate("/");
-
-        }
-
-        else {
-
-          alert(
-            response.data.message
-          );
-
-        }
-
-      }
-
-      catch (error) {
-
-        alert(
-
-          error.response?.data
-            ?.message ||
-
-          "Verification Failed"
-
-        );
-
-      }
-
-    };
-
-  const handleResend =
-    async () => {
-
-      try {
-
-        const response =
-          await api.post(
-
-            "/auth/resend-otp",
-
-            {
-              email,
-            }
-
-          );
-
-        alert(
-
-          `${response.data.message}
-
-OTP:
-${response.data.otp}`
-
-        );
-
-      }
-
-      catch (error) {
-
-        alert(
-          "Unable to resend OTP"
-        );
-
-      }
-
-    };
+  const handleResend = async () => {
+    try {
+      await api.post("/auth/resend-otp", { email });
+      toast.success("A new code has been sent");
+      setCooldown(60);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Unable to resend");
+    }
+  };
 
   return (
-
     <AuthLayout
-      title="Verify OTP"
+      title="Verify your email"
+      subtitle={`We sent a 6-digit code to ${email || "your email"}. It expires in 5 minutes.`}
+      footer={<>Wrong email? <span style={{ color: "var(--primary)", cursor: "pointer" }} onClick={() => navigate("/register")}>Start over</span></>}
     >
+      <div className="field">
+        <label>Verification code</label>
+        <input
+          className="input"
+          inputMode="numeric"
+          maxLength={6}
+          placeholder="------"
+          style={{ letterSpacing: "0.5em", textAlign: "center", fontSize: 22, fontWeight: 700 }}
+          value={otp}
+          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+          onKeyDown={(e) => e.key === "Enter" && handleVerify()}
+        />
+      </div>
 
-      <p>
-
-        Email:
-        {" "}
-        {email}
-
-      </p>
-
-      <Input
-
-        type="text"
-
-        name="otp"
-
-        placeholder=
-          "Enter OTP"
-
-        value={otp}
-
-        onChange={(e) =>
-          setOtp(
-            e.target.value
-          )
-        }
-
-      />
-
-      <br />
-      <br />
+      <Button text={loading ? "Verifying…" : "Verify"} onClick={handleVerify}
+        disabled={loading || otp.length < 6} variant="primary" block />
 
       <Button
-
-        text="Verify OTP"
-
-        onClick={
-          handleVerify
-        }
-
+        text={cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
+        onClick={handleResend}
+        disabled={cooldown > 0}
+        variant="ghost"
+        block
       />
-
-      <br />
-      <br />
-
-      <Button
-
-        text="Resend OTP"
-
-        onClick={
-          handleResend
-        }
-
-      />
-
     </AuthLayout>
-
   );
-
 }
 
 export default VerifyOtp;
