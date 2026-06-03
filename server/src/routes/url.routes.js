@@ -8,21 +8,57 @@ const router = express.Router();
 const authenticate =
   require("../middleware/auth.middleware");
 
-// import controller
+// import url controller
 const {
   createUrl,
+  removeUrl,
 } = require("../controllers/url.controller");
 
-// redirect controller
+// import redirect controller
 const {
   redirect,
 } = require("../controllers/redirect.controller");
 
-// create short url route
+// import analytics controller
+const {
+  getAnalytics,
+} = require(
+  "../controllers/analytics.controller"
+);
+
+// import dashboard controller
+const {
+  getDashboard,
+} = require(
+  "../controllers/dashboard.controller"
+);
+
+// create short url
 router.post(
   "/create",
   authenticate,
   createUrl
+);
+
+// delete url
+router.delete(
+  "/:id",
+  authenticate,
+  removeUrl
+);
+
+// dashboard data
+router.get(
+  "/dashboard",
+  authenticate,
+  getDashboard
+);
+
+// analytics data
+router.get(
+  "/analytics/:shortCode",
+  authenticate,
+  getAnalytics
 );
 
 // redirect route

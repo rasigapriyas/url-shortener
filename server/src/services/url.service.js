@@ -40,17 +40,20 @@ const createShortUrl = async (
   };
 
 };
+
 // redirect using shortcode
 const redirectUrl = async (
-  shortCode
+  shortCode,
+  visitData
 ) => {
 
   // find url by shortcode
-  const url = await prisma.url.findUnique({
-    where: {
-      shortCode,
-    },
-  });
+  const url =
+    await prisma.url.findUnique({
+      where: {
+        shortCode,
+      },
+    });
 
   // url not found
   if (!url) {
@@ -69,12 +72,108 @@ const redirectUrl = async (
     },
   });
 
+  // save visit record
+  await prisma.visit.create({
+    data: {
+      urlId: url.id,
+      ipAddress:
+        visitData.ipAddress,
+      browser:
+        visitData.browser,
+    },
+  });
+
   // return original url
   return url.originalUrl;
 
 };
 
+// get url analytics
+const getUrlAnalytics = async (
+  shortCode
+) => {
+
+  // find url with visits
+  const url =
+    await prisma.url.findUnique({
+      where: {
+        shortCode,
+      },
+      include: {
+        visits: {
+          orderBy: {
+            visitedAt: "desc",
+          },
+          take: 10,
+        },
+      },
+    });
+
+  // url not found
+  if (!url) {
+    return {
+      message: "URL not found",
+    };
+  }
+
+  // return analytics
+  return {
+    originalUrl: url.originalUrl,
+    shortCode: url.shortCode,
+    totalClicks: url.totalClicks,
+    status: url.status,
+    createdAt: url.createdAt,
+    recentVisits: url.visits,
+  };
+
+};
+// delete url
+const deleteUrl = async (
+  userId,
+  urlId
+) => {
+
+  // find url
+  const url =
+    await prisma.url.findFirst({
+      where: {
+        id: Number(urlId),
+        userId,
+      },
+    });
+
+  // url not found
+  if (!url) {
+    return {
+      message: "URL not found",
+    };
+  }
+
+  // delete visits first
+  await prisma.visit.deleteMany({
+    where: {
+      urlId: url.id,
+    },
+  });
+
+  // delete url
+  await prisma.url.delete({
+    where: {
+      id: url.id,
+    },
+  });
+
+  // success response
+  return {
+    message: "URL deleted successfully",
+  };
+
+};
+
+// export service functions
 module.exports = {
   createShortUrl,
   redirectUrl,
+  getUrlAnalytics,
+  deleteUrl,
 };

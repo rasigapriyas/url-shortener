@@ -264,9 +264,190 @@ const loginUser = async (loginData) => {
   };
 
 };
+// forgot password
+const forgotPassword =
+  async (email) => {
+
+    // find user
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+
+    // user not found
+    if (!user) {
+      return {
+        message: "User not found",
+      };
+    }
+
+    // generate otp
+    const otp = Math.floor(
+      100000 +
+      Math.random() * 900000
+    ).toString();
+
+    // expiry time
+    const expiresAt =
+      new Date(
+        Date.now() +
+        10 * 60 * 1000
+      );
+
+    // save otp
+    await prisma.userOtp.create({
+      data: {
+        userId: user.id,
+        otp,
+        purpose:
+          "FORGOT_PASSWORD",
+        expiresAt,
+      },
+    });
+
+    // success response
+    return {
+      message:
+        "Password reset OTP generated",
+      otp,
+    };
+
+  };
+  // verify reset otp
+const verifyResetOtp =
+  async (email, otp) => {
+
+    // find user
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+
+    // user not found
+    if (!user) {
+      return {
+        message:
+          "User not found",
+      };
+    }
+
+    // find otp
+    const savedOtp =
+      await prisma.userOtp.findFirst({
+        where: {
+          userId: user.id,
+          purpose:
+            "FORGOT_PASSWORD",
+          verified: false,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+    // otp missing
+    if (!savedOtp) {
+      return {
+        message:
+          "OTP not found",
+      };
+    }
+
+    // otp mismatch
+    if (
+      savedOtp.otp !== otp
+    ) {
+      return {
+        message:
+          "Invalid OTP",
+      };
+    }
+
+    // otp expired
+    if (
+      savedOtp.expiresAt <
+      new Date()
+    ) {
+      return {
+        message:
+          "OTP expired",
+      };
+    }
+
+    // mark verified
+    await prisma.userOtp.update({
+      where: {
+        id: savedOtp.id,
+      },
+      data: {
+        verified: true,
+      },
+    });
+
+    return {
+      message:
+        "OTP verified successfully",
+    };
+
+  };
+  // reset password
+const resetPassword =
+  async (
+    email,
+    newPassword
+  ) => {
+
+    // find user
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+
+    // user not found
+    if (!user) {
+      return {
+        message:
+          "User not found",
+      };
+    }
+
+    // hash password
+    const hashedPassword =
+      await bcrypt.hash(
+        newPassword,
+        10
+      );
+
+    // update password
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        password:
+          hashedPassword,
+      },
+    });
+
+    // success response
+    return {
+      message:
+        "Password reset successfully",
+    };
+
+  };
 // export service function
 module.exports = {
   registerUser,
   verifyOtp,
   loginUser,
+  forgotPassword,
+  verifyResetOtp,
+  resetPassword,
 };

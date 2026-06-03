@@ -12,9 +12,24 @@ const redirect = async (
   // get shortcode
   const { shortCode } = req.params;
 
+  // collect visit info
+  const visitData = {
+
+    // visitor ip
+    ipAddress: req.ip,
+
+    // browser info
+    browser:
+      req.headers["user-agent"],
+
+  };
+
   // find original url
   const originalUrl =
-    await redirectUrl(shortCode);
+    await redirectUrl(
+      shortCode,
+      visitData
+    );
 
   // url not found
   if (!originalUrl) {
