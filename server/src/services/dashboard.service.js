@@ -39,10 +39,10 @@ const getDashboardData = async (
 
   // return dashboard data
   return {
-    totalUrls,
-    totalClicks,
-    recentUrls,
-  };
+  totalUrls,
+  totalClicks,
+  urls,
+};
 
 };
 
