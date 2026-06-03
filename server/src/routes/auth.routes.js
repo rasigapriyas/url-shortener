@@ -1,21 +1,37 @@
-// jwt middleware
-const authenticate =
-  require("../middleware/auth.middleware");
-
 // import express
 const express = require("express");
 
 // create router
 const router = express.Router();
 
-// import auth controllers
+// jwt middleware
+const authenticate =
+  require("../middleware/auth.middleware");
+
+// rate limiters
+const {
+  loginLimiter,
+  registerLimiter,
+} = require(
+  "../middleware/rateLimiter.middleware"
+);
+
+// recaptcha middleware
+const verifyRecaptcha =
+  require(
+    "../middleware/recaptcha.middleware"
+  );
+
+// auth controllers
 const {
   register,
   verifyUserOtp,
   login,
-} = require("../controllers/auth.controller");
+} = require(
+  "../controllers/auth.controller"
+);
 
-// import password controllers
+// password controllers
 const {
   sendResetOtp,
   verifyForgotOtp,
@@ -27,9 +43,9 @@ const {
 // register route
 router.post(
   "/register",
+  registerLimiter,
   register
 );
-
 // verify otp route
 router.post(
   "/verify-otp",
@@ -39,10 +55,11 @@ router.post(
 // login route
 router.post(
   "/login",
+  loginLimiter,
   login
 );
 
-// protected profile route
+// profile route
 router.get(
   "/profile",
   authenticate,
@@ -62,7 +79,6 @@ router.post(
   "/forgot-password",
   sendResetOtp
 );
-
 // verify reset otp route
 router.post(
   "/verify-reset-otp",
