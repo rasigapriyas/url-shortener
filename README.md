@@ -263,14 +263,9 @@ id  urlId  browser  device   os       country  visitedAt
 1   7      Chrome   Desktop  Windows  IN       2026-06-04T09:12:33Z
 ```
 
-**Screenshots:** add images to `docs/screenshots/` and embed them, e.g.
-`![Dashboard](docs/screenshots/dashboard.png)`.
-
----
-
 ## 7. Demo Video
 
-▶️ **Watch the demo:** `<PASTE YOUR LOOM / YOUTUBE LINK HERE>`
+▶️ **Watch the demo:** <https://youtu.be/yE32suFqkPk>
 
 > Required by the hackathon — a submission without a video is not reviewed.
 >
