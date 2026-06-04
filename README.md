@@ -1,136 +1,100 @@
-# 🔗 ShortLink — URL Shortener with Analytics
+# ShortLink — URL Shortener with Analytics
 
-A production-style, full-stack URL shortener built for the Katomaran hackathon. Users register with email + OTP verification, log in with JWT auth, create short links (with custom aliases, expiry, and bulk import), and explore a modern analytics dashboard with click trends and device/browser breakdowns.
+A full-stack URL shortener built for the Katomaran hackathon. Users sign up with email + OTP verification, log in with JWT, create short links (custom alias, expiry, bulk), and view a modern analytics dashboard with click trends and device/browser breakdowns.
 
-The UI is a dark, enterprise-grade SaaS interface (think Dub.co / Vercel Analytics) — not a generic admin template.
-
----
-
-## ✨ Highlights
-
-- **Premium dark design system** — custom palette, Inter type scale, 8px spacing, glass cards, real charts (Recharts), light/dark toggle.
-- **Enterprise auth** — signup → email OTP verification → JWT login, forgot/reset password with a signed reset ticket, refresh tokens, account lockout, reCAPTCHA hooks.
-- **Hardened OTP** — 6-digit codes, 5-minute expiry, max 5 attempts, 60-second resend cooldown, single active code per purpose. **OTPs are never returned by the API in production.**
-- **Analytics** — per-link click counts, last visit, recent visit log, daily trend chart, and device / browser / OS distribution donuts.
-- **Pro URL table** — search, status filter, sortable columns, pagination, inline edit, copy, QR, public stats, soft delete.
-- **Security** — bcrypt (12 rounds), Helmet headers, request logging (morgan), per-route rate limiting, owner-scoped queries, centralized error handler, CORS allow-list.
+**Stack:** React + Vite · Node.js + Express · PostgreSQL + Prisma
 
 ---
 
-## 🧱 Tech Stack
+## Table of Contents
 
-| Layer    | Tech                                                        |
-| -------- | ----------------------------------------------------------- |
-| Frontend | React 19, Vite, React Router, Axios, Recharts               |
-| Backend  | Node.js, Express 5                                          |
-| Database | PostgreSQL                                                  |
-| ORM      | Prisma                                                      |
-| Auth     | JWT access (15m) + DB-backed refresh token (7d), bcrypt    |
-| Security | Helmet, express-rate-limit, Google reCAPTCHA, morgan        |
+1. [Setup Instructions](#1-setup-instructions)
+2. [Assumptions](#2-assumptions)
+3. [Features](#3-features)
+4. [AI Planning & Architecture Diagram](#4-ai-planning--architecture-diagram)
+5. [API Endpoints](#5-api-endpoints)
+6. [Sample Output](#6-sample-output-logs-images-db-entries)
+7. [Demo Video](#7-demo-video)
 
 ---
 
-## 🏗️ Architecture
+## 1. Setup Instructions
 
-```mermaid
-flowchart LR
-  subgraph Client["React + Vite (Client)"]
-    A[Auth Pages] --> AX[Axios API client + JWT]
-    D[Dashboard / Analytics] --> AX
-    P[Public Stats] --> AX
-  end
+### Prerequisites
 
-  subgraph API["Express API"]
-    AX -->|/api/auth| AUTH[Auth Routes]
-    AX -->|/api/url| URL[URL Routes]
-    REDIR[/:shortCode redirect/]
-    AUTH --> SVC1[auth.service]
-    URL --> SVC2[url + dashboard service]
-    REDIR --> SVC2
-    MW[Helmet · CORS · Rate limit · reCAPTCHA · JWT]
-  end
+- **Node.js** v18+ — <https://nodejs.org>
+- **PostgreSQL** v14+ (running locally) — <https://www.postgresql.org/download/>
+- **Git**
+- *(Optional)* a **Gmail account** for OTP email. Without it, OTPs print to the server console.
 
-  subgraph DB["PostgreSQL via Prisma"]
-    U[(User)]
-    O[(UserOtp)]
-    L[(Url)]
-    V[(Visit)]
-    R[(RefreshToken)]
-    AL[(AuditLog)]
-  end
+### Step 1 — Clone the repository
 
-  SVC1 --> U & O & R & AL
-  SVC2 --> L & V & AL
-  MAIL[(Email / console OTP)]
-  SVC1 --> MAIL
+```bash
+git clone https://github.com/rasigapriyas/url-shortener.git
+cd url-shortener
 ```
 
-### Data model
+### Step 2 — Create the database
 
-```mermaid
-erDiagram
-  User ||--o{ Url : owns
-  User ||--o{ UserOtp : has
-  User ||--o{ RefreshToken : has
-  User ||--o{ AuditLog : generates
-  Url  ||--o{ Visit : records
+In `psql` or pgAdmin:
 
-  User { int id string email string password enum status bool isVerified }
-  UserOtp { int id enum purpose datetime expiresAt int attemptCount bool isUsed }
-  Url { int id string shortCode string customAlias int totalClicks enum status datetime expiresAt }
-  Visit { int id string browser string device string os string country datetime visitedAt }
-  RefreshToken { int id string tokenHash datetime expiresAt datetime revokedAt }
-  AuditLog { int id enum action json metadata }
+```sql
+CREATE DATABASE url_shortener_db;
 ```
 
-### Project structure
+### Step 3 — Backend
 
-```text
-client/src
-  components/   Button, Input, StatsCard, UrlForm, UrlTable, UrlRow, charts, icons
-  layouts/      AuthLayout, DashboardLayout (sidebar + topbar + theme toggle)
-  pages/        Login, Register, VerifyOtp, ForgotPassword, ResetPassword,
-                Dashboard, Analytics, PublicStats
-  services/     api (axios), toast
-  index.css     design system (palette, radii, spacing, components)
-
-server/src
-  config/       prisma client, mailer (SMTP + dev console fallback)
-  controllers/  auth, password, url, redirect, analytics, dashboard
-  middleware/   auth (JWT), rateLimiter, recaptcha
-  routes/       auth.routes, url.routes
-  services/     auth.service, url.service, dashboard.service
-  utils/        http (ok/fail/send), urlHelpers (validation, code gen, UA parse)
-  app.js        Helmet, CORS allow-list, morgan, error handler
+```bash
+cd server
+npm install
 ```
 
----
-
-## 🚀 Setup
-
-### 1. Database + server env
-
-Create a PostgreSQL database, then `server/.env`:
+Create `server/.env`:
 
 ```env
-DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/url_shortener_db"
-JWT_SECRET="replace-with-a-long-random-secret"
+# Database (use your own Postgres user/password)
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/url_shortener_db"
+
+# Auth
+JWT_SECRET="any-long-random-string"
 JWT_EXPIRES_IN="15m"
+
+# Server
 PORT=5000
-BASE_URL="http://localhost:5000"
 NODE_ENV="development"
+BASE_URL="http://localhost:5000"
 CLIENT_ORIGINS="http://localhost:5173"
+
+# reCAPTCHA ("dev-disabled" turns it off locally)
 RECAPTCHA_SECRET_KEY="dev-disabled"
 
-# Optional — when set, OTPs are emailed instead of printed to the console
-# SMTP_HOST="smtp.example.com"
+# Email (OPTIONAL). If omitted, OTPs print to the server console.
+# Gmail: enable 2-Step Verification, create an App Password, paste it (no spaces).
+# SMTP_HOST="smtp.gmail.com"
 # SMTP_PORT=587
-# SMTP_USER="apikey"
-# SMTP_PASS="secret"
-# SMTP_FROM="ShortLink <no-reply@shortlink.app>"
+# SMTP_USER="youraddress@gmail.com"
+# SMTP_PASS="your16charapppassword"
+# SMTP_FROM="ShortLink <youraddress@gmail.com>"
 ```
 
-`client/.env`:
+Create the tables and start the API:
+
+```bash
+npx prisma migrate deploy   # creates all tables
+npx prisma generate         # generates the DB client
+npm run dev                 # API → http://localhost:5000
+```
+
+> **Windows tip:** if `prisma generate` shows `EPERM`, stop the server (Ctrl+C) and run it again.
+
+### Step 4 — Frontend (second terminal)
+
+```bash
+cd client
+npm install
+```
+
+Create `client/.env`:
 
 ```env
 VITE_API_URL="http://localhost:5000/api"
@@ -138,87 +102,180 @@ VITE_PUBLIC_BASE_URL="http://localhost:5000"
 VITE_RECAPTCHA_SITE_KEY=""
 ```
 
-### 2. Install + migrate
+Start it:
 
 ```bash
-cd server
-npm install
-npx prisma migrate dev      # applies all migrations (incl. OTP attempt/used columns)
-npx prisma generate         # stop the dev server first if you hit an EPERM lock on Windows
-
-cd ../client
-npm install
+npm run dev                 # App → http://localhost:5173
 ```
 
-> **Windows note:** `prisma generate` renames a DLL the running server holds open. If you get `EPERM`, stop the API (`Ctrl+C`) and rerun `npx prisma generate`.
+### Step 5 — Use the app
 
-### 3. Run
+Open **<http://localhost:5173>**, register, verify the OTP (from email or the server console), and start shortening URLs.
 
-```bash
-# terminal 1
-cd server && npm run dev      # http://localhost:5000
+> Always run the backend with `npm run dev` (not `npm start`) so it auto-reloads.
 
-# terminal 2
-cd client && npm run dev      # http://localhost:5173
+---
+
+## 2. Assumptions
+
+- **Email is optional.** Without SMTP configured, OTPs are printed to the server console (and, only in development, returned by the API for testing). In production they are never exposed.
+- `RECAPTCHA_SECRET_KEY=dev-disabled` bypasses captcha locally; set a real key in production.
+- QR codes are generated client-side via a public QR image endpoint (no external service is used for the core shortening logic).
+- Country analytics uses the `cf-ipcountry` proxy header when available, otherwise `Unknown`.
+- "Avg / Link" on the dashboard = total clicks ÷ total links.
+
+---
+
+## 3. Features
+
+**Mandatory**
+
+- Signup & login with email OTP verification
+- JWT-protected dashboard routes; each user manages only their own URLs
+- Create unique short codes from long URLs (with backend URL validation)
+- Server-side redirect from short URL → original
+- Dashboard shows original URL, short URL, created date, total clicks
+- Delete a URL (soft delete) and copy the short URL from the UI
+- Click count + visit timestamp stored in the database
+- Per-URL analytics: total clicks, last visit, recent visit history
+- Responsive UI with loading / success / error states and form validation
+
+**Bonus**
+
+- Custom alias · QR code · link expiry · edit destination URL
+- Device / browser / OS analytics (country via proxy header)
+- Daily click-trend charts (Recharts) · public stats page · bulk creation
+
+---
+
+## 4. AI Planning & Architecture Diagram
+
+**AI planning documents** (process, feature list, security audit, and a full code walkthrough):
+
+- [docs/AI_PLANNING.md](docs/AI_PLANNING.md)
+- [docs/INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md)
+
+### Architecture (3-tier)
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│  CLIENT  —  React + Vite        (http://localhost:5173)        │
+│  Pages: Login · Register · VerifyOtp · Dashboard · Analytics   │
+│  Axios attaches the JWT to every request                       │
+└───────────────────────────┬──────────────────────────────────┘
+                            │  REST  (JSON over HTTP)
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│  SERVER  —  Node.js + Express   (http://localhost:5000)        │
+│                                                                │
+│   Middleware:  Helmet → CORS → JSON → Rate-limit →             │
+│                reCAPTCHA → JWT auth                            │
+│                                                                │
+│   Routes  →  Controllers  →  Services (business logic)         │
+│                                   │                            │
+│                                   └──►  Nodemailer → Gmail SMTP │
+└───────────────────────────────────┬────────────────────────────┘
+                                    │  Prisma ORM (parameterized → no SQL injection)
+                                    ▼
+┌──────────────────────────────────────────────────────────────┐
+│  DATABASE  —  PostgreSQL                                       │
+│  User · UserOtp · Url · Visit · RefreshToken · AuditLog        │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-When SMTP is not configured, the OTP is printed to the **server console** (and, in dev only, included in the API response for quick testing).
+### Data model (relations)
+
+```text
+User  1───*  Url   1───*  Visit
+User  1───*  UserOtp
+User  1───*  RefreshToken
+User  1───*  AuditLog
+
+User          id, name, email (unique), password (bcrypt), status, isVerified
+UserOtp       id, userId, otp, purpose, expiresAt, attemptCount, isUsed
+Url           id, userId, originalUrl, shortCode (unique), customAlias,
+              totalClicks, status, expiresAt, deletedAt
+Visit         id, urlId, ipAddress, browser, device, os, country, visitedAt
+RefreshToken  id, userId, tokenHash (sha256), expiresAt, revokedAt
+AuditLog      id, userId, action, metadata, createdAt
+```
+
+### Request flow — creating & clicking a short link
+
+```text
+1. User submits a long URL  →  POST /api/url/create
+2. Server validates the URL, generates a unique base62 code, saves the Url row
+3. Anyone opens  http://localhost:5000/<shortCode>   (GET /:shortCode)
+4. Server finds the link, increments totalClicks, writes a Visit row, then 302-redirects
+5. Dashboard & Analytics read those Visit rows to draw charts
+```
 
 ---
 
-## 🔌 API Summary
+## 5. API Endpoints
 
-| Method | Endpoint                          | Notes                                  |
-| ------ | --------------------------------- | -------------------------------------- |
-| POST   | `/api/auth/register`              | reCAPTCHA + rate-limited               |
-| POST   | `/api/auth/verify-otp`            | attempt-limited                        |
-| POST   | `/api/auth/login`                 | reCAPTCHA + lockout                    |
-| POST   | `/api/auth/resend-otp`            | 60s cooldown                           |
-| POST   | `/api/auth/forgot-password`       | enumeration-safe                       |
-| POST   | `/api/auth/verify-reset-otp`      | returns short-lived `resetTicket`      |
-| POST   | `/api/auth/reset-password`        | requires `resetTicket`                 |
-| POST   | `/api/auth/refresh`               | new access token from refresh token    |
-| POST   | `/api/auth/logout`                | revokes refresh token                  |
-| POST   | `/api/url/create`                 | alias + expiry supported               |
-| POST   | `/api/url/bulk`                   | up to 25 URLs                          |
-| PATCH  | `/api/url/:id`                    | edit destination / expiry / status     |
-| DELETE | `/api/url/:id`                    | soft delete                            |
-| GET    | `/api/url/dashboard`              | stats, trend, breakdowns, links        |
-| GET    | `/api/url/analytics/:shortCode`   | owner-only analytics                   |
-| GET    | `/api/url/public/:shortCode`      | public-safe stats                      |
-| GET    | `/:shortCode`                     | server-side redirect + visit capture   |
-
----
-
-## 🎨 Design System
-
-- **Colors** — Primary `#6366F1`, Secondary `#8B5CF6`, Success `#22C55E`, Warning `#F59E0B`, Danger `#EF4444`, Background `#0F172A`, Card `#1E293B`, Border `#334155`, Text `#F8FAFC`, Muted `#94A3B8`.
-- **Type** — Inter (400–900).
-- **Radii** — 12px buttons, 16px cards, pill badges.
-- **Spacing** — 8px scale.
-- **Light + dark** — toggle in the top navbar (persisted to `localStorage`).
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| POST | `/api/auth/register` | Create account, send OTP |
+| POST | `/api/auth/verify-otp` | Verify signup OTP |
+| POST | `/api/auth/login` | Log in → JWT + refresh token |
+| POST | `/api/auth/resend-otp` | Resend OTP (60s cooldown) |
+| POST | `/api/auth/forgot-password` | Send reset OTP |
+| POST | `/api/auth/verify-reset-otp` | Verify reset OTP → reset ticket |
+| POST | `/api/auth/reset-password` | Set new password |
+| POST | `/api/auth/refresh` | New access token |
+| POST | `/api/auth/logout` | Revoke refresh token |
+| POST | `/api/url/create` | Create short URL |
+| POST | `/api/url/bulk` | Create up to 25 URLs |
+| PATCH | `/api/url/:id` | Edit destination / expiry / status |
+| DELETE | `/api/url/:id` | Soft delete |
+| GET | `/api/url/dashboard` | Stats, trend, breakdowns, links |
+| GET | `/api/url/analytics/:shortCode` | Owner-only analytics |
+| GET | `/api/url/public/:shortCode` | Public stats |
+| GET | `/:shortCode` | Redirect + record the visit |
 
 ---
 
-## 📌 Assumptions
+## 6. Sample Output (logs, images, DB entries)
 
-- **Email delivery is optional.** With no SMTP configured, OTPs are logged to the server console and returned by the API **only in development** (`NODE_ENV=development`). In production they are never exposed.
-- `RECAPTCHA_SECRET_KEY=dev-disabled` bypasses captcha locally; set a real secret + matching site key in production.
-- QR codes are rendered client-side via a public QR image endpoint (no external shortening service is used for the core logic).
-- Country analytics reads proxy headers (e.g. `cf-ipcountry`) when present, otherwise `Unknown`.
-- "Avg / Link" on the dashboard is total clicks ÷ total links (a meaningful stand-in for CTR, which needs impression data a shortener doesn't have).
+**Server logs** (signup → verify → click):
+
+```text
+Server running on port 5000
+[mailer] SMTP ready via smtp.gmail.com:587 as youraddress@gmail.com
+[mailer] Sent REGISTER code to user@gmail.com
+POST /api/auth/register   201
+POST /api/auth/verify-otp 200
+GET  /Ab3xY9q             302   <- short link clicked = a recorded "click"
+```
+
+**Database — `User` table** (passwords are bcrypt-hashed, never plaintext):
+
+```text
+#11  verified=true   bala@gmail.com   (bala)
+#12  verified=false  suba@gmail.com   (suba)
+```
+
+**Database — `Visit` table** (one row per click — the analytics source of truth):
+
+```text
+id  urlId  browser  device   os       country  visitedAt
+1   7      Chrome   Desktop  Windows  IN       2026-06-04T09:12:33Z
+```
+
+**Screenshots:** add images to `docs/screenshots/` and embed them, e.g.
+`![Dashboard](docs/screenshots/dashboard.png)`.
 
 ---
 
-## 🎥 Demo Video
+## 7. Demo Video
 
-> ▶️ **Add your Loom / YouTube link here before submitting** (required — submissions without a video are not reviewed).
+▶️ **Watch the demo:** `<PASTE YOUR LOOM / YOUTUBE LINK HERE>`
 
----
-
-## 🧠 AI Planning & Interview Notes
-
-See [docs/AI_PLANNING.md](docs/AI_PLANNING.md) for the planning process, feature list, security audit, and interview Q&A.
+> Required by the hackathon — a submission without a video is not reviewed.
+>
+> Suggested flow: signup → OTP email → login → create a short link (alias/expiry) →
+> click it (redirect) → dashboard stats & charts → per-link analytics → public stats → delete.
 
 ---
 
